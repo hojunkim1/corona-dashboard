@@ -44,5 +44,5 @@ class CoronaData:
 
     def make_daily_df_by_country(self):
         df = self.daily_df[['Country_Region', 'Confirmed', 'Deaths', 'Recovered']]
-        df = df.groupby('Country_Region').sum().reset_index()
+        df = df.groupby('Country_Region').sum().sort_values(by="Confirmed", ascending=False).reset_index()
         return df
