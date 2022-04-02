@@ -34,29 +34,19 @@ bubble_map = px.scatter_geo(
     projection="natural earth"
 )
 
-bubble_map.update_layout(
-    margin=dict(l=0, r=0, t=50, b=0),
-)
+bubble_map.update_layout(margin=dict(l=0, r=0, t=50, b=0))
 
 bars_graph = px.bar(
     totals_df,
     title='Total Global Cases',
     x='condition',
     y='count',
-    hover_data={
-        'count': ":,",
-    },
+    labels={'condition': 'Condition', 'count': 'Count', 'color': 'Condition'},
+    hover_data={'count': ":,", },
     template="plotly_dark"
 )
 
-bars_graph.update_layout(
-    xaxis=dict(
-        title='Condition',
-    ),
-    yaxis=dict(
-        title='Count',
-    ),
-)
+bars_graph.update_traces(marker_color=["#e74c3c", "#8e44ad", "#27ae60"])
 
 app.layout = html.Div(
     children=[
@@ -66,10 +56,25 @@ app.layout = html.Div(
         ),
         html.Div(
             children=[
-                html.Div(children=[dcc.Graph(figure=bubble_map)]),
+                html.Div(
+                    children=[dcc.Graph(figure=bubble_map)],
+                    style={"grid-column": "span 3"},
+                ),
                 html.Div(children=[make_table(countries_df)]),
-                html.Div(children=[dcc.Graph(figure=bars_graph)]),
-            ]
+            ],
+            style={
+                "display": "grid",
+                "gap": 50,
+                "gridTemplateColumns": "repeat(4, 1fr)",
+            }
+        ),
+        html.Div(
+            children=[dcc.Graph(figure=bars_graph)],
+            style={
+                "display": "grid",
+                "gap": 50,
+                "gridTemplateColumns": "repeat(4, 1fr)",
+            },
         ),
     ],
     style={
