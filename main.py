@@ -1,11 +1,15 @@
 import plotly.express as px
 from dash import Dash, html, dcc
+from dash.dependencies import Input, Output
 
 from builders import make_table
 from corona_data import CoronaData
 
 countries_df = CoronaData().make_daily_df_by_country()
 totals_df = CoronaData().make_daily_df_global()
+
+dropdown_options = countries_df.sort_values("Country_Region").reset_index()
+dropdown_options = dropdown_options["Country_Region"]
 
 stylesheets = [
     "https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css",
@@ -31,7 +35,7 @@ bubble_map = px.scatter_geo(
     color='Confirmed',
     template='plotly_dark',
     color_continuous_scale=px.colors.sequential.Oryel,
-    projection="natural earth"
+    projection='natural earth'
 )
 
 bubble_map.update_layout(margin=dict(l=0, r=0, t=50, b=0))
@@ -42,11 +46,11 @@ bars_graph = px.bar(
     x='condition',
     y='count',
     labels={'condition': 'Condition', 'count': 'Count', 'color': 'Condition'},
-    hover_data={'count': ":,", },
+    hover_data={'count': ":,"},
     template="plotly_dark"
 )
 
-bars_graph.update_traces(marker_color=["#e74c3c", "#8e44ad", "#27ae60"])
+bars_graph.update_traces(marker_color=['#e74c3c', '#8e44ad', '#27ae60'])
 
 app.layout = html.Div(
     children=[
@@ -58,22 +62,35 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     children=[dcc.Graph(figure=bubble_map)],
-                    style={"grid-column": "span 3"},
+                    style={'grid-column': 'span 3'},
                 ),
                 html.Div(children=[make_table(countries_df)]),
             ],
             style={
-                "display": "grid",
-                "gap": 50,
-                "gridTemplateColumns": "repeat(4, 1fr)",
+                'display': 'grid',
+                'gap': 50,
+                'gridTemplateColumns': 'repeat(4, 1fr)',
             }
         ),
         html.Div(
-            children=[dcc.Graph(figure=bars_graph)],
+            children=[
+                html.Div(children=[dcc.Graph(figure=bars_graph)]),
+                html.Div(
+                    children=[
+                        dcc.Dropdown(
+                            id='country-dropdown',
+                            options=[
+                                {'label': country, 'value': country} for country in dropdown_options
+                            ]
+                        ),
+                        html.H1(id='country-output'),
+                    ]
+                )
+            ],
             style={
-                "display": "grid",
-                "gap": 50,
-                "gridTemplateColumns": "repeat(4, 1fr)",
+                'display': 'grid',
+                'gap': 50,
+                'gridTemplateColumns': 'repeat(4, 1fr)',
             },
         ),
     ],
@@ -84,6 +101,17 @@ app.layout = html.Div(
         'color': 'white'
     }
 )
+
+
+@app.callback(
+    Output('country-output', 'children'),
+    [
+        Input('country-dropdown', 'value')
+    ]
+)
+def update_hello(value):
+    print(value)
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
