@@ -14,6 +14,8 @@ stylesheets = [
 
 app = Dash(__name__, external_stylesheets=stylesheets)
 
+server = app.server
+
 
 def make_line_graph():
     dropdown_options = make_dropdown_options()
@@ -108,6 +110,3 @@ def update_line_graph(value):
 
 
 app.layout = main_layout()
-
-if __name__ == '__main__':
-    app.run_server(debug=True)
