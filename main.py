@@ -2,14 +2,10 @@ import plotly.express as px
 from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
 
-from builders import make_table
 from corona_data import CoronaData
-
-countries_df = CoronaData().make_daily_df_by_country()
-totals_df = CoronaData().make_daily_df_global()
-
-dropdown_options = countries_df.sort_values("Country_Region").reset_index()
-dropdown_options = dropdown_options["Country_Region"]
+from graphs import make_bubble_map, make_bars_graph
+from tables import make_dropdown_options
+from tables import make_table
 
 stylesheets = [
     "https://cdn.jsdelivr.net/npm/reset-css@5.0.1/reset.min.css",
@@ -18,100 +14,100 @@ stylesheets = [
 
 app = Dash(__name__, external_stylesheets=stylesheets)
 
-bubble_map = px.scatter_geo(
-    countries_df,
-    title='Coronavirus Cases by Country',
-    locations='Country_Region',
-    locationmode='country names',
-    hover_name='Country_Region',
-    hover_data={
-        'Country_Region': False,
-        'Confirmed': ":,2f",
-        'Deaths': ":,2f",
-        'Recovered': ":,2f",
-    },
-    size='Confirmed',
-    size_max=50,
-    color='Confirmed',
-    template='plotly_dark',
-    color_continuous_scale=px.colors.sequential.Oryel,
-    projection='natural earth'
-)
 
-bubble_map.update_layout(margin=dict(l=0, r=0, t=50, b=0))
-
-bars_graph = px.bar(
-    totals_df,
-    title='Total Global Cases',
-    x='condition',
-    y='count',
-    labels={'condition': 'Condition', 'count': 'Count', 'color': 'Condition'},
-    hover_data={'count': ":,"},
-    template="plotly_dark"
-)
-
-bars_graph.update_traces(marker_color=['#e74c3c', '#8e44ad', '#27ae60'])
-
-app.layout = html.Div(
-    children=[
-        html.Header(
-            children=[html.H1(children='Corona Dashboard', style={'font-size': '50px'})],
-            style={'textAlign': 'center', 'paddingTop': '50px', 'marginBottom': 100},
-        ),
-        html.Div(
-            children=[
-                html.Div(
-                    children=[dcc.Graph(figure=bubble_map)],
-                    style={'grid-column': 'span 3'},
-                ),
-                html.Div(children=[make_table(countries_df)]),
+def make_line_graph():
+    dropdown_options = make_dropdown_options()
+    return [
+        dcc.Dropdown(
+            placeholder="Select a Country",
+            id='country_dropdown',
+            options=[
+                {'label': country, 'value': country} for country in dropdown_options
             ],
             style={
-                'display': 'grid',
-                'gap': 50,
-                'gridTemplateColumns': 'repeat(4, 1fr)',
-            }
-        ),
-        html.Div(
-            children=[
-                html.Div(children=[dcc.Graph(figure=bars_graph)]),
-                html.Div(
-                    children=[
-                        dcc.Dropdown(
-                            id='country-dropdown',
-                            options=[
-                                {'label': country, 'value': country} for country in dropdown_options
-                            ]
-                        ),
-                        html.H1(id='country-output'),
-                    ]
-                )
-            ],
-            style={
-                'display': 'grid',
-                'gap': 50,
-                'gridTemplateColumns': 'repeat(4, 1fr)',
+                "width": 320,
+                "margin": "0 auto",
+                "color": "#111111",
             },
         ),
-    ],
-    style={
-        'fontFamily': 'Open Sans, sans-serif',
-        'minHeight': '100vh',
-        'backgroundColor': '#111111',
-        'color': 'white'
-    }
-)
+        dcc.Graph(id='country_graph'),
+    ]
+
+
+def main_layout():
+    return html.Div(
+        children=[
+            html.Header(
+                children=[html.H1(children='Corona Dashboard', style={'font-size': '50px'})],
+                style={'textAlign': 'center', 'paddingTop': '50px', 'marginBottom': 100},
+            ),
+            html.Div(
+                children=[
+                    html.Div(
+                        children=[make_bubble_map()],
+                        style={'grid-column': 'span 3'},
+                    ),
+                    html.Div(children=[make_table()]),
+                ],
+                style={
+                    'display': 'grid',
+                    'gap': 50,
+                    'gridTemplateColumns': 'repeat(4, 1fr)',
+                }
+            ),
+            html.Div(
+                children=[
+                    html.Div(children=[make_bars_graph()]),
+                    html.Div(
+                        children=make_line_graph(),
+                        style={'grid-column': 'span 3'},
+                    )
+                ],
+                style={
+                    'display': 'grid',
+                    'gap': 50,
+                    'gridTemplateColumns': 'repeat(4, 1fr)',
+                },
+            ),
+        ],
+        style={
+            'fontFamily': 'Open Sans, sans-serif',
+            'minHeight': '100vh',
+            'backgroundColor': '#111111',
+            'color': 'white'
+        }
+    )
 
 
 @app.callback(
-    Output('country-output', 'children'),
-    [
-        Input('country-dropdown', 'value')
-    ]
+    Output('country_graph', 'figure'),
+    [Input('country_dropdown', 'value')]
 )
-def update_hello(value):
-    print(value)
+def update_line_graph(value):
+    if value:
+        df = CoronaData().make_timeline_df_by_country(value)
+    else:
+        df = CoronaData().make_timeline_df_global()
+    fig = px.line(
+        df,
+        x='Date',
+        y=['confirmed', 'deaths', 'recovered'],
+        labels={
+            'value': 'Cases',
+            'variable': 'Condition',
+            'date': 'Date'
+        },
+        hover_data={
+            'value': ':,',
+            'variable': False,
+        },
+        template='plotly_dark',
+    )
+    fig.update_xaxes(rangeslider_visible=True)
+    return fig
 
+
+app.layout = main_layout()
 
 if __name__ == '__main__':
     app.run_server(debug=True)

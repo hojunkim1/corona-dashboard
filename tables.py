@@ -1,7 +1,17 @@
 from dash import html
 
+from corona_data import CoronaData
 
-def make_table(df):
+
+def make_dropdown_options():
+    countries_df = CoronaData().make_daily_df_by_country()
+    dropdown_options = countries_df.sort_values('Country_Region').reset_index()
+    dropdown_options = dropdown_options['Country_Region']
+    return dropdown_options
+
+
+def make_table():
+    country_df = CoronaData().make_daily_df_by_country()
     return html.Table(
         children=[
             html.Thead(
@@ -9,7 +19,7 @@ def make_table(df):
                     html.Tr(
                         children=[
                             html.Th(column_name.replace('_', ' '))
-                            for column_name in df.columns
+                            for column_name in country_df.columns
                         ],
                         style={
                             'display': 'grid',
@@ -38,7 +48,7 @@ def make_table(df):
                             'padding': '30px 0px',
                         },
                     )
-                    for value in df.values
+                    for value in country_df.values
                 ],
                 style={'maxHeight': '50vh', 'display': 'block', 'overflow': 'scroll', },
             )
